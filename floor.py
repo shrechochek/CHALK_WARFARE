@@ -78,7 +78,7 @@ class Floor:
                                 texture='wall.png',
                                 collider='box',
                                 color=ursina.color.rgb(30, 30, 50),
-                                texture_scale = ((end_x - start_x + 1) * scale_x / 2, 6 / 2)
+                                texture_scale = ((end_y - start_y + 1) * scale_z / 2, 6 / 2)
                             )
                     else:
                         y += 1
