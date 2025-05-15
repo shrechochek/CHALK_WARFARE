@@ -192,7 +192,7 @@ def input(key):
             reload_thread = threading.Thread(target=reload_weapon, args=(weapon,), daemon=True)
             reload_thread.start()
             
-    elif key in ["1", "2", "3", "4", "5"]:
+    elif key in ["1", "2"]:
         # Reset reload indicator when switching weapons
         update_reload_indicator(0)
         player.hand = int(key)-1
