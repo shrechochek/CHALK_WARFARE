@@ -6,6 +6,7 @@ import asyncio
 import ursina
 import time
 import mouse
+import random
 from network import Network
 
 from floor import Floor
@@ -183,11 +184,86 @@ def input(key):
     if key == "left mouse down" and player.health > 0:
         weapon = player.inventory[player.hand]
         if weapon.bullets > 0 and not weapon.reloading:
-            b_pos = player.position + ursina.Vec3(0, 2, 0)
+            # Делаем raycast от камеры вперед
+            ray1 = ursina.raycast(player.camera_pivot.world_position, player.camera_pivot.forward*300, ignore=[player], debug=False)
+            
+            if ray1.hit:
+                # Получаем точку попадания
+                hit_point = ray1.world_point
+                
+                # Позиция оружия в мировых координатах
+                # Используем позицию оружия на экране, преобразуя её в мировые координаты
+                weapon = player.inventory[player.hand]
+                
+                # Получаем позицию камеры и начальную точку для выстрела
+                camera_pos = player.camera_pivot.world_position
+                forward_vector = player.camera_pivot.forward
+                right_vector = player.camera_pivot.right
+                
+                # Смещаем начальную точку вправо и немного вниз от камеры, чтобы она была похожа на позицию оружия
+                weapon_pos = camera_pos + right_vector * 0.5 - ursina.Vec3(0, 0.2, 0)
+                
+                # Создаем эффект выстрела - линию из частиц от оружия до точки попадания
+                shot_distance = (hit_point - weapon_pos).length()
+                particles_count = min(int(shot_distance * 4), 50)  # Количество частиц зависит от расстояния
+                
+                # Создаем частицы вдоль линии выстрела
+                for i in range(particles_count):
+                    # Вычисляем позицию частицы с некоторым разбросом
+                    lerp_value = i / particles_count
+                    # Заменяем lerp на ручную линейную интерполяцию
+                    particle_pos = weapon_pos + (hit_point - weapon_pos) * lerp_value
+                    
+                    # Добавляем небольшой случайный разброс для эффекта
+                    spread = 0.03 * (1 - lerp_value)  # Чем дальше, тем меньше разброс
+                    particle_pos += ursina.Vec3(
+                        random.uniform(-spread, spread),
+                        random.uniform(-spread, spread),
+                        random.uniform(-spread, spread)
+                    )
+                    
+                    # Создаем частицу
+                    particle = ursina.Entity(
+                        model='sphere',
+                        color=ursina.color.rgba(100, 100, 100, 50),
+                        position=particle_pos,
+                        scale=0.05,
+                        billboard=True
+                    )
+                    
+                    # Добавляем затухание и уничтожение
+                    particle.animate_scale(0, duration=0.2)
+                    particle.animate_color(ursina.color.rgb(100, 100, 100), duration=0.2)
+                    ursina.destroy(particle, delay=0.2)
+                
+                # Создаем маркер в точке попадания
+                hit_marker = ursina.Entity(
+                    model='circle',
+                    color=ursina.color.black,
+                    scale=0.1,
+                    position=hit_point,
+                    billboard=True
+                )
+                
+                # Анимация маркера попадания
+                hit_marker.animate_scale(0.5, duration=0.3)
+                hit_marker.animate_color(ursina.color.rgba(150, 150, 150, 0), duration=0.3)
+                ursina.destroy(hit_marker, delay=0.3)
+                
+                # Если попали во врага
+                if hasattr(ray1.entity, 'health') and ray1.entity.health > 0:
+                    # Рассчитываем урон (как в исходном коде)
+                    damage = random.randint(5, 20)
+                    ray1.entity.health -= damage
+                    n.send_health(ray1.entity)
+                
+                print(f"Выстрел в точку: {hit_point}, расстояние: {ray1.distance}")
+            
+            # Обновляем патроны
             weapon.bullets -= 1
-            bullet = Bullet(b_pos, player.world_rotation_y, -player.camera_pivot.world_rotation_x, n)
-            n.send_bullet(bullet)
-            ursina.destroy(bullet, delay=2)
+            
+            # Звук выстрела можно добавить здесь
+            
         if weapon.bullets <= 0 and not weapon.reloading:
             reload_thread = threading.Thread(target=reload_weapon, args=(weapon,), daemon=True)
             reload_thread.start()

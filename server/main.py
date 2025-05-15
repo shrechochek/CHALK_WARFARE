@@ -68,7 +68,7 @@ def handle_messages(identifier: str):
             print(e)
             continue
 
-        print(f"Received message from player {username} with ID {identifier}")
+        # print(f"Received message from player {username} with ID {identifier}")
 
         if msg_json["object"] == "player":
             players[identifier]["position"] = msg_json["position"]
@@ -156,6 +156,12 @@ def main():
 
         print(f"New connection from {addr}, assigned ID: {new_id}...")
 
+# def inputConsole():
+#     while True:
+#         inp = input()
+#         for player_id in players:
+#             player_info = players[player_id]
+#             if player_info["username"] == inp:
 
 if __name__ == "__main__":
     try:

@@ -1,5 +1,6 @@
 import socket
 import json
+import threading
 
 from player import Player
 from enemy import Enemy

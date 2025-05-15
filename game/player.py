@@ -1,5 +1,5 @@
 import ursina
-from ursina.prefabs.first_person_controller import FirstPersonController
+from thirdpersoncontroller import FirstPersonController
 from weapon import Weapon
 
 
@@ -44,6 +44,15 @@ class Player(FirstPersonController):
             position=self.bullets_text_pos, 
             scale=2.35
         )
+        
+        # Визуальный индикатор для BHOP
+        self.bhop_indicator = ursina.Text(
+            text='', 
+            parent=ursina.camera.ui,
+            position=ursina.Vec2(0, -0.35), 
+            scale=1.5,
+            color=ursina.color.rgb(100, 255, 100)
+        )
 
         self.health = 100
         self.death_message_shown = False
@@ -53,7 +62,8 @@ class Player(FirstPersonController):
     def death(self):
         self.death_message_shown = True
 
-        ursina.destroy(self.gun)
+        for i in self.inventory:
+            ursina.destroy(i)
         self.rotation = 0
         self.camera_pivot.world_rotation_x = -45
         self.world_position = ursina.Vec3(0, 7, -35)
@@ -69,6 +79,23 @@ class Player(FirstPersonController):
         weapon = self.inventory[self.hand]
         self.bullets_text.text = f"{weapon.bullets}/{weapon.bulletsMax}"
         self.healthbar.scale_x = self.health / 100 * self.healthbar_size.x
+        
+        # Показываем информацию о BHOP
+        if self.bhop_active:
+            boost = min(self.bhop_boost + (self.consecutive_bhops * 0.1), self.max_bhop_boost)
+            self.bhop_indicator.text = f"BHOP x{boost:.1f}"
+            self.bhop_indicator.color = ursina.color.rgb(
+                int(255 * min(1, boost/2)), 
+                int(255 * (1 - min(1, (boost-1)/1))), 
+                0
+            )
+        else:
+            remaining_time = self.bhop_window - (ursina.time.time() - self.landing_time)
+            if self.grounded and remaining_time > 0:
+                self.bhop_indicator.text = f"BHOP READY {remaining_time:.2f}s"
+                self.bhop_indicator.color = ursina.color.yellow
+            else:
+                self.bhop_indicator.text = ""
         
         for i in range(len(self.inventory)):
             weapon = self.inventory[i]
